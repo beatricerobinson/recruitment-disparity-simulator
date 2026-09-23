@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recruitment Disparity Simulation: End-to-End Funnel & Audit Sandbox</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            },
+            disparity: {
+              rose: '#f43f5e',
+              indigo: '#6366f1',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              slate: '#334155'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #f8fafc;
+    }
+    .funnel-bar-transition {
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    input[type=range] {
+      accent-color: #6366f1;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.6);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col custom-scrollbar selection:bg-indigo-500 selection:text-white">
+
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur sticky top-0 z-40 px-4 sm:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <span class="inline-flex items-center justify-center p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+            </svg>
+          </span>
+          <div>
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              Systemic Recruitment Disparity Simulator
+              <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">End-to-End Pipeline</span>
+            </h1>
+            <p class="text-xs text-slate-400">Deconstructing top-of-funnel resume gatekeeping, channel segregation, and the qualification paradox</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 self-start sm:self-auto">
+        <button id="btn-export-csv" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5 border border-slate-700">
+          <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          Export Cohort Data
+        </button>
+        <button id="btn-show-methodology" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 transition flex items-center gap-1.5 border border-indigo-500/40">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+          Methodology & Sources
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden">
+        <div class="absolute -right-4 -top-4 w-20 h-20 bg-rose-500/10 rounded-full blur-xl pointer-events-none"></div>
+        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Offer Equity Gap</span>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-offer-ratio" class="text-3xl font-black text-rose-400 font-mono tracking-tight">7.1x</span>
+          <span class="text-xs text-rose-300/80 font-medium">fewer offers per applicant</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">Yield multiple for benchmark vs. identically qualified Black female applicant.</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden">
+        <div class="absolute -right-4 -top-4 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
+        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">The "Application Tax"</span>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-apps-needed-bw" class="text-3xl font-black text-amber-400 font-mono tracking-tight">167</span>
+          <span class="text-xs text-slate-400">apps/offer vs <strong id="kpi-apps-needed-bm" class="text-indigo-300 font-mono font-semibold">24</strong></span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">Applications required to secure 1 offer under current structural parameters.</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden">
+        <div class="absolute -right-4 -top-4 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl pointer-events-none"></div>
+        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Top-of-Funnel Sieve Penalty</span>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-sieve-penalty" class="text-3xl font-black text-indigo-400 font-mono tracking-tight">-60%</span>
+          <span class="text-xs text-slate-400">relative callback loss</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">Combined drop-off from cold ATS screening and restricted referral ingress.</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden">
+        <div class="absolute -right-4 -top-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none"></div>
+        <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">End-to-End Funnel Conversion</span>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-final-yield-bw" class="text-3xl font-black text-emerald-400 font-mono tracking-tight">0.60%</span>
+          <span class="text-xs text-slate-400">vs <span id="kpi-final-yield-bm" class="text-indigo-300 font-mono font-semibold">4.24%</span></span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">Overall cohort conversion rate from application submission to offer letter.</p>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Column: Primary Levers (4 cols) -->
+      <section class="lg:col-span-4 glass-card rounded-2xl p-5 space-y-6 shadow-xl border border-slate-800">
+        <div>
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
+              Simulation Controls
+            </h2>
+            <button id="btn-reset-defaults" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium">Reset</button>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Adjust hiring pipeline levers to see compounding drop-offs along the funnel.</p>
+        </div>
+
+        <!-- Quick Scenario Presets -->
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-300 block">Scenario Presets</label>
+          <div class="grid grid-cols-2 gap-1.5 text-xs">
+            <button class="preset-btn px-2.5 py-2 rounded-xl border border-indigo-600/60 bg-indigo-950/40 text-indigo-200 hover:bg-indigo-900/50 transition text-left" data-preset="statusquo">
+              <span class="font-bold block text-white">Baseline Reality</span>
+              <span class="text-[10px] text-slate-400">Real-world audit friction</span>
+            </button>
+            <button class="preset-btn px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-700 transition text-left" data-preset="bootstrap">
+              <span class="font-bold block text-amber-300">The Bootstrap Test</span>
+              <span class="text-[10px] text-slate-400">PhD vs. Bachelor's</span>
+            </button>
+            <button class="preset-btn px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-700 transition text-left" data-preset="blind">
+              <span class="font-bold block text-indigo-300">Blind ATS Screen</span>
+              <span class="text-[10px] text-slate-400">Name cues scrubbed</span>
+            </button>
+            <button class="preset-btn px-2.5 py-2 rounded-xl border border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-700 transition text-left" data-preset="equity">
+              <span class="font-bold block text-emerald-300">Full Structural Parity</span>
+              <span class="text-[10px] text-slate-400">Zero network/stage bias</span>
+            </button>
+          </div>
+        </div>
+
+        <hr class="border-slate-800/80">
+
+        <!-- Lever 1: Resume Filtering / Cultural Cues Penalty -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <label for="lever-bias" class="font-semibold text-slate-200">
+              1. Resume / Name Bias Penalty (ATS & Screener)
+            </label>
+            <span id="val-bias" class="font-mono text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">35%</span>
+          </div>
+          <input id="lever-bias" type="range" min="0" max="60" value="35" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Direct penalty inflicted on resumes bearing historically Black names, HBCU credentials, or identity cues during preliminary screening.
+          </p>
+        </div>
+
+        <!-- Lever 2: Educational Level (The Qualification Myth Lever) -->
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-200 block">
+            2. Candidate Credential Tier
+          </label>
+          <div class="grid grid-cols-3 gap-1.5 text-xs font-medium">
+            <button class="edu-btn px-2 py-2 rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 hover:border-slate-600 transition text-center" data-edu="bachelors">
+              Bachelor's
+            </button>
+            <button class="edu-btn px-2 py-2 rounded-xl border border-indigo-500 bg-indigo-900/40 text-indigo-200 font-bold transition text-center" data-edu="masters">
+              Master's / MBA
+            </button>
+            <button class="edu-btn px-2 py-2 rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 hover:border-slate-600 transition text-center" data-edu="doctorate">
+              PhD / Terminal
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Higher degrees provide baseline conversion lift across all candidates, but fail to eliminate the racialized conversion multiplier.
+          </p>
+        </div>
+
+        <!-- Lever 3: Social Capital & Referral Network Gap -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <label for="lever-ref-gap" class="font-semibold text-slate-200">
+              3. Referral Access Parity (Network Gating)
+            </label>
+            <span id="val-ref-gap" class="font-mono text-indigo-300 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">28% Parity</span>
+          </div>
+          <input id="lever-ref-gap" type="range" min="10" max="100" value="28" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+          <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+            <span>Segregated (10%)</span>
+            <span>Real-World (~28%)</span>
+            <span>Parity (100%)</span>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Employee referrals yield 3x higher callback rates. This lever captures demographic homophily in executive referral pipelines.
+          </p>
+        </div>
+
+        <!-- Lever 4: Subjective Interview Loop Friction -->
+        <div class="space-y-2 pt-2 border-t border-slate-800">
+          <div class="flex items-center justify-between text-xs">
+            <label for="lever-interview-friction" class="font-semibold text-slate-200">
+              4. "Culture Fit" / Presence Discount
+            </label>
+            <span id="val-interview-friction" class="font-mono text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">25%</span>
+          </div>
+          <input id="lever-interview-friction" type="range" min="0" max="50" value="25" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Subjective evaluation penalty in unstructured interview loops (e.g. perceived "leadership demeanor", panel homophily).
+          </p>
+        </div>
+
+        <!-- Cohort Input Size -->
+        <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
+          <label for="input-cohort-size" class="text-slate-400 font-medium">Initial Cohort Size (Per Group)</label>
+          <input id="input-cohort-size" type="number" min="100" max="10000" step="100" value="1000" class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-right font-mono text-white text-xs focus:ring-1 focus:ring-indigo-500 outline-none">
+        </div>
+      </section>
+
+      <!-- Right Column: Visual Funnel & Diagnostics (8 cols) -->
+      <section class="lg:col-span-8 space-y-6">
+        
+        <!-- View Toggle Toolbar -->
+        <div class="glass-card rounded-2xl p-5 shadow-xl border border-slate-800 space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-white flex items-center gap-2">
+                Recruitment Funnel Progression
+              </h2>
+              <p class="text-xs text-slate-400">Comparing cohort retention from cold/referral submission to offer extension</p>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <div class="inline-flex p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs font-medium">
+                <button id="view-mode-funnel" class="px-3 py-1 rounded-lg bg-indigo-600 text-white font-semibold transition">Stages</button>
+                <button id="view-mode-channels" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">Channel Dissection</button>
+                <button id="view-mode-audit" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition">Audit Lab</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage Legend -->
+          <div class="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
+            <div class="flex items-center gap-4">
+              <span class="inline-flex items-center gap-1.5 font-medium">
+                <span class="w-3 h-3 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50"></span>
+                <span class="text-slate-300">Benchmark Candidate</span>
+              </span>
+              <span class="inline-flex items-center gap-1.5 font-medium">
+                <span class="w-3 h-3 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>
+                <span class="text-slate-300">Black Female Candidate</span>
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-400 font-mono">
+              Cohort Baseline: <span id="display-cohort-total" class="text-white font-bold">1,000</span> each
+            </div>
+          </div>
+
+          <!-- Standard Funnel View -->
+          <div id="funnel-container" class="space-y-4">
+            <!-- Dynamically populated via JS -->
+          </div>
+
+          <!-- Channel Dissection View (Initially Hidden) -->
+          <div id="channel-container" class="space-y-4 hidden">
+            <!-- Dynamically populated via JS: Inbound breakdown cold vs referral -->
+          </div>
+
+          <!-- Audit Sandbox Live Experiment (Initially Hidden) -->
+          <div id="audit-container" class="space-y-4 hidden">
+            <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 class="text-sm font-bold text-white">Live Correspondence Audit Test</h4>
+                  <p class="text-xs text-slate-400">Simulate sending 100 paired, identical resumes into current ATS portal filters.</p>
+                </div>
+                <button id="btn-run-audit-sim" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md transition flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Run 100-Resume Batch
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div class="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+                  <span class="text-xs font-semibold text-indigo-300 block">Benchmark Applications (50 Resumes)</span>
+                  <div class="mt-2 flex items-baseline gap-2">
+                    <span id="audit-bm-callbacks" class="text-2xl font-bold font-mono text-white">0</span>
+                    <span class="text-xs text-slate-400">callbacks received (<span id="audit-bm-rate" class="font-mono text-indigo-400">0%</span>)</span>
+                  </div>
+                </div>
+                <div class="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+                  <span class="text-xs font-semibold text-rose-300 block">Black Female Applications (50 Resumes)</span>
+                  <div class="mt-2 flex items-baseline gap-2">
+                    <span id="audit-bw-callbacks" class="text-2xl font-bold font-mono text-white">0</span>
+                    <span class="text-xs text-slate-400">callbacks received (<span id="audit-bw-rate" class="font-mono text-rose-400">0%</span>)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mini Activity Log -->
+              <div class="bg-slate-950 rounded-lg p-2.5 font-mono text-[11px] text-slate-400 border border-slate-800/80 max-h-28 overflow-y-auto custom-scrollbar" id="audit-log">
+                [Ready] Click "Run 100-Resume Batch" to fire empirical audit tests into the portal.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- The Qualification Paradox Matrix & Direct Proof Section -->
+        <div class="glass-card rounded-2xl p-5 shadow-xl border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span class="p-1 rounded-lg bg-amber-500/20 text-amber-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                  </svg>
+                </span>
+                The Qualification Paradox: Disproving the Bootstrap Narrative
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">Empirical proof: Does earning higher credentials shield candidates from structural friction?</p>
+            </div>
+          </div>
+
+          <!-- Credential Cross-Comparison Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-medium">
+                  <th class="py-2.5 px-3">Credential Level</th>
+                  <th class="py-2.5 px-3">Benchmark Offer Yield</th>
+                  <th class="py-2.5 px-3">Black Woman Offer Yield</th>
+                  <th class="py-2.5 px-3">Absolute Deficit</th>
+                  <th class="py-2.5 px-3">Relative Multiplier</th>
+                </tr>
+              </thead>
+              <tbody id="matrix-table-body" class="divide-y divide-slate-800/60 font-mono">
+                <!-- Dynamically populated via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Explanatory Insight Callout -->
+          <div id="paradox-callout" class="p-4 rounded-xl bg-amber-950/20 border border-amber-800/40 text-xs text-amber-200/90 leading-relaxed">
+            <!-- Dynamic narrative text evaluating current credential scenario -->
+          </div>
+        </div>
+
+        <!-- Interactive Chart: Cumulative Retention Curve -->
+        <div class="glass-card rounded-2xl p-5 shadow-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white">Cumulative Survival Probability Along Funnel</h3>
+              <p class="text-xs text-slate-400">Survival rate demonstrating where the steepest divergence occurs</p>
+            </div>
+          </div>
+          <div class="h-64 w-full">
+            <canvas id="retentionChart"></canvas>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <!-- Methodology Modal -->
+    <div id="modal-methodology" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-2xl w-full max-h-[88vh] overflow-y-auto p-6 space-y-4 shadow-2xl custom-scrollbar">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>Mathematical Model & Literature Base</span>
+          </h3>
+          <button id="btn-close-methodology" class="text-slate-400 hover:text-white p-1 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-4 text-xs text-slate-300 leading-relaxed">
+          <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
+            <h4 class="font-bold text-indigo-300 text-xs uppercase tracking-wider mb-1">1. The Resume Sieve (Kline, Rose, & Walters 2021; Bertrand & Mullainathan 2004)</h4>
+            <p>
+              Correspondence audits submitting identical CVs across Fortune 500 portals document a 20% to 50% discount in initial recruiter callbacks for resumes bearing distinctive Black names or identity cues. This automated or human screen acts before any substantive interview takes place.
+            </p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
+            <h4 class="font-bold text-indigo-300 text-xs uppercase tracking-wider mb-1">2. The Referral Advantage & Social Capital Segregation</h4>
+            <p>
+              Referrals represent ~40% of professional hires and bypass cold screener filtration with 3x higher callback rates. Because senior management tiers remain demographically homogenous, referral networks exhibit intense demographic homophily, heavily disadvantaging Black women.
+            </p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
+            <h4 class="font-bold text-indigo-300 text-xs uppercase tracking-wider mb-1">3. The Qualification Myth (BLS & Economic Policy Institute)</h4>
+            <p>
+              Data confirms that holding a Master's or Doctoral credential does not shield Black women from hiring disparities. In empirical labor datasets, Black college graduates consistently face unemployment and underemployment rates higher than white peers with only high school diplomas or associate credentials.
+            </p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
+            <h4 class="font-bold text-indigo-300 text-xs uppercase tracking-wider mb-1">4. Downstream Evaluation Homophily (McKinsey & LeanIn)</h4>
+            <p>
+              During unstructured onsite interviews, subjective criteria ("presence", "cultural fit") introduce unstandardized risk-aversion, compounding cumulative attrition into final offer stages.
+            </p>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex justify-end">
+          <button id="btn-modal-dismiss" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium text-xs">
+            Close Reference
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-slate-800/80 bg-slate-950 px-4 py-4 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+      <span>Systemic Recruitment Simulation Engine • Based on Empirical Audit Methodologies</span>
+      <span>Live Pipeline Visualizer</span>
+    </div>
+  </footer>
+
+  <script>
+    /* Model State Definition */
+    const state = {
+      cohortSize: 1000,
+      biasPenalty: 0.35,          // Delta: ATS & initial resume screen penalty [0, 0.60]
+      eduLevel: 'masters',        // 'bachelors', 'masters', 'doctorate'
+      referralParity: 0.28,       // Relative access to warm referrals (0.10 to 1.0)
+      interviewFriction: 0.25,    // Downstream culture fit penalty
+      activeView: 'funnel'        // 'funnel', 'channels', 'audit'
+    };
+
+    /* Educational Credential Multipliers */
+    const eduFactors = {
+      bachelors: {
+        label: "Bachelor's Degree",
+        baseCallbackBoost: 1.0,
+        offerBoost: 1.0,
+      },
+      masters: {
+        label: "Master's / MBA",
+        baseCallbackBoost: 1.25,
+        offerBoost: 1.22,
+      },
+      doctorate: {
+        label: "Doctoral / Terminal Degree",
+        baseCallbackBoost: 1.45,
+        offerBoost: 1.35,
+      }
+    };
+
+    /* Funnel Simulation Calculation Function */
+    function runSimulation(params) {
+      const N0 = params.cohortSize;
+      const edu = eduFactors[params.eduLevel];
+
+      // Benchmark referral rate: ~38%
+      const pRefBenchmark = 0.38;
+      // Target cohort referral rate: scaled by referralParity lever
+      const pRefTarget = pRefBenchmark * params.referralParity;
+
+      // Referral conversion rate to Callback (high direct pathway)
+      const pCallbackRef = 0.52 * edu.baseCallbackBoost;
+      
+      // Cold portal callback baseline (benchmark)
+      const pCallbackColdBenchmark = 0.18 * edu.baseCallbackBoost;
+
+      // Cold portal callback for Black women cohort: penalized by resume/cultural cue filter
+      const pCallbackColdTarget = pCallbackColdBenchmark * (1 - params.biasPenalty);
+
+      // --- STAGE 1: Screening & Callbacks (N1) ---
+      const n1_bm_ref = Math.round((N0 * pRefBenchmark) * pCallbackRef);
+      const n1_bm_cold = Math.round((N0 * (1 - pRefBenchmark)) * pCallbackColdBenchmark);
+      const N1_Benchmark = n1_bm_ref + n1_bm_cold;
+
+      const n1_bw_ref = Math.round((N0 * pRefTarget) * pCallbackRef);
+      const n1_bw_cold = Math.round((N0 * (1 - pRefTarget)) * pCallbackColdTarget);
+      const N1_Target = n1_bw_ref + n1_bw_cold;
+
+      // --- STAGE 2: Advanced Technical & Onsite Interview Loops (N2) ---
+      const pLoopBenchmark = 0.50;
+      const pLoopTarget = pLoopBenchmark * (1 - params.interviewFriction);
+
+      const N2_Benchmark = Math.round(N1_Benchmark * pLoopBenchmark);
+      const N2_Target = Math.round(N1_Target * pLoopTarget);
+
+      // --- STAGE 3: Final Offers Extended (N3) ---
+      const pOfferBenchmark = 0.35 * edu.offerBoost;
+      const pOfferTarget = pOfferBenchmark * 0.58;
+
+      const N3_Benchmark = Math.max(1, Math.round(N2_Benchmark * pOfferBenchmark));
+      const N3_Target = Math.max(1, Math.round(N2_Target * pOfferTarget));
+
+      return {
+        channels: {
+          bm: { refApplicants: Math.round(N0 * pRefBenchmark), coldApplicants: Math.round(N0 * (1 - pRefBenchmark)), refCallbacks: n1_bm_ref, coldCallbacks: n1_bm_cold },
+          bw: { refApplicants: Math.round(N0 * pRefTarget), coldApplicants: Math.round(N0 * (1 - pRefTarget)), refCallbacks: n1_bw_ref, coldCallbacks: n1_bw_cold }
+        },
+        stages: [
+          {
+            name: "1. Applications Submitted",
+            benchmark: N0,
+            target: N0,
+            unit: "applicants",
+            stepLossBm: 0,
+            stepLossBw: 0,
+            retentionBm: 100,
+            retentionBw: 100,
+            description: "Equal cohort submitted through cold portals or executive referral routes."
+          },
+          {
+            name: "2. Resume Screen / Callback",
+            benchmark: N1_Benchmark,
+            target: N1_Target,
+            unit: "screened",
+            stepLossBm: N0 - N1_Benchmark,
+            stepLossBw: N0 - N1_Target,
+            retentionBm: (N1_Benchmark / N0) * 100,
+            retentionBw: (N1_Target / N0) * 100,
+            description: "Sifted via automated keyword algorithms, identity markers, and referral bypass."
+          },
+          {
+            name: "3. Completed Interview Loops",
+            benchmark: N2_Benchmark,
+            target: N2_Target,
+            unit: "finalists",
+            stepLossBm: N1_Benchmark - N2_Benchmark,
+            stepLossBw: N1_Target - N2_Target,
+            retentionBm: (N2_Benchmark / N0) * 100,
+            retentionBw: (N2_Target / N0) * 100,
+            description: "Evaluated across panels where subjective 'culture fit' and demeanor rubrics apply."
+          },
+          {
+            name: "4. Formal Job Offers Extended",
+            benchmark: N3_Benchmark,
+            target: N3_Target,
+            unit: "offers",
+            stepLossBm: N2_Benchmark - N3_Benchmark,
+            stepLossBw: N2_Target - N3_Target,
+            retentionBm: (N3_Benchmark / N0) * 100,
+            retentionBw: (N3_Target / N0) * 100,
+            description: "Final executive hiring sign-off, homophily filter, and risk allocation."
+          }
+        ],
+        summary: {
+          yieldBm: (N3_Benchmark / N0) * 100,
+          yieldBw: (N3_Target / N0) * 100,
+          offerRatio: (N3_Benchmark / N3_Target),
+          appsNeededBm: Math.round(N0 / N3_Benchmark),
+          appsNeededBw: Math.round(N0 / N3_Target)
+        }
+      };
+    }
+
+    let retentionChartInstance = null;
+
+    function renderUI(simData) {
+      document.getElementById('display-cohort-total').textContent = state.cohortSize.toLocaleString();
+
+      // Render Stage Cards
+      const container = document.getElementById('funnel-container');
+      container.innerHTML = '';
+      const maxCount = simData.stages[0].benchmark;
+
+      simData.stages.forEach((stage, index) => {
+        const bmPct = (stage.benchmark / maxCount) * 100;
+        const bwPct = (stage.target / maxCount) * 100;
+        const stageRatio = (stage.target / stage.benchmark);
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-900/80 rounded-xl p-4 border border-slate-800/80 transition hover:border-slate-700 space-y-3";
+
+        card.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center font-bold text-[10px]">
+                ${index + 1}
+              </span>
+              <h3 class="font-bold text-white text-sm">${stage.name}</h3>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] font-mono">
+              <span class="text-slate-400">Cohort Parity:</span>
+              <span class="font-bold ${stageRatio < 0.4 ? 'text-rose-400' : stageRatio < 0.7 ? 'text-amber-400' : 'text-emerald-400'}">
+                ${(stageRatio * 100).toFixed(0)}%
+              </span>
+              <span class="text-slate-500">(${stage.target.toLocaleString()} vs ${stage.benchmark.toLocaleString()})</span>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-1">
+            <!-- Benchmark Bar -->
+            <div>
+              <div class="flex justify-between text-[11px] mb-1 font-mono">
+                <span class="text-indigo-300 font-medium">Benchmark</span>
+                <span class="text-slate-300"><strong>${stage.benchmark.toLocaleString()}</strong> candidates (${stage.retentionBm.toFixed(1)}% yield)</span>
+              </div>
+              <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden p-0.5 border border-slate-800">
+                <div class="bg-indigo-500 h-full rounded-full funnel-bar-transition shadow-sm shadow-indigo-500/50" style="width: ${Math.max(1.5, bmPct)}%"></div>
+              </div>
+            </div>
+
+            <!-- Black Woman Candidate Bar -->
+            <div>
+              <div class="flex justify-between text-[11px] mb-1 font-mono">
+                <span class="text-rose-300 font-medium">Black Female Candidate</span>
+                <span class="text-slate-300"><strong>${stage.target.toLocaleString()}</strong> candidates (${stage.retentionBw.toFixed(1)}% yield)</span>
+              </div>
+              <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden p-0.5 border border-slate-800">
+                <div class="bg-rose-500 h-full rounded-full funnel-bar-transition shadow-sm shadow-rose-500/50" style="width: ${Math.max(1.5, bwPct)}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-slate-400 italic pt-1 border-t border-slate-800/60 flex items-center justify-between">
+            <span>${stage.description}</span>
+            ${index > 0 ? `<span class="text-rose-400 font-mono text-[10px]">-${stage.stepLossBw.toLocaleString()} eliminated</span>` : ''}
+          </p>
+        `;
+        container.appendChild(card);
+      });
+
+      // Render Channel Dissection View
+      renderChannelView(simData);
+
+      // Update KPI Badges
+      document.getElementById('kpi-offer-ratio').textContent = `${simData.summary.offerRatio.toFixed(1)}x`;
+      document.getElementById('kpi-apps-needed-bw').textContent = `${simData.summary.appsNeededBw}`;
+      document.getElementById('kpi-apps-needed-bm').textContent = `${simData.summary.appsNeededBm}`;
+      document.getElementById('kpi-final-yield-bw').textContent = `${simData.summary.yieldBw.toFixed(2)}%`;
+      document.getElementById('kpi-final-yield-bm').textContent = `${simData.summary.yieldBm.toFixed(2)}%`;
+      
+      const s1DropBm = (simData.stages[1].benchmark / simData.stages[0].benchmark);
+      const s1DropBw = (simData.stages[1].target / simData.stages[0].target);
+      const s1Penalty = Math.round((1 - (s1DropBw / s1DropBm)) * 100);
+      document.getElementById('kpi-sieve-penalty').textContent = `-${s1Penalty}%`;
+
+      // Update Qualification Matrix
+      renderQualificationMatrix();
+
+      // Update Chart
+      updateRetentionChart(simData);
+    }
+
+    function renderChannelView(simData) {
+      const channelContainer = document.getElementById('channel-container');
+      const bm = simData.channels.bm;
+      const bw = simData.channels.bw;
+
+      channelContainer.innerHTML = `
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-4">
+          <div>
+            <h4 class="text-sm font-bold text-white">Channel Inflow Dissection (Cold Portal vs. Referral Pipeline)</h4>
+            <p class="text-xs text-slate-400">Illustrating why equal cold applications fail to bridge systemic gaps when closed referral channels dominate.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+            <!-- Benchmark Channel Card -->
+            <div class="p-3.5 rounded-xl bg-slate-950 border border-indigo-900/40 space-y-3">
+              <span class="text-indigo-300 font-bold block text-xs uppercase tracking-wider">Benchmark Channel Mix</span>
+              
+              <div class="space-y-1">
+                <div class="flex justify-between text-slate-400">
+                  <span>Executive Referrals:</span>
+                  <span class="text-white font-bold">${bm.refApplicants} applicants (${bm.refCallbacks} callbacks)</span>
+                </div>
+                <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+                  <div class="bg-indigo-400 h-full rounded-full" style="width: ${(bm.refApplicants / state.cohortSize) * 100}%"></div>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-slate-400">
+                  <span>Cold Portal Inflow:</span>
+                  <span class="text-white font-bold">${bm.coldApplicants} applicants (${bm.coldCallbacks} callbacks)</span>
+                </div>
+                <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+                  <div class="bg-indigo-600 h-full rounded-full" style="width: ${(bm.coldApplicants / state.cohortSize) * 100}%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Black Woman Channel Card -->
+            <div class="p-3.5 rounded-xl bg-slate-950 border border-rose-900/40 space-y-3">
+              <span class="text-rose-300 font-bold block text-xs uppercase tracking-wider">Black Female Channel Mix</span>
+              
+              <div class="space-y-1">
+                <div class="flex justify-between text-slate-400">
+                  <span>Executive Referrals:</span>
+                  <span class="text-white font-bold">${bw.refApplicants} applicants (${bw.refCallbacks} callbacks)</span>
+                </div>
+                <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+                  <div class="bg-rose-400 h-full rounded-full" style="width: ${(bw.refApplicants / state.cohortSize) * 100}%"></div>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-slate-400">
+                  <span>Cold Portal Inflow:</span>
+                  <span class="text-white font-bold">${bw.coldApplicants} applicants (${bw.coldCallbacks} callbacks)</span>
+                </div>
+                <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden">
+                  <div class="bg-rose-600 h-full rounded-full" style="width: ${(bw.coldApplicants / state.cohortSize) * 100}%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderQualificationMatrix() {
+      const tbody = document.getElementById('matrix-table-body');
+      tbody.innerHTML = '';
+
+      const levels = ['bachelors', 'masters', 'doctorate'];
+      const currentLevel = state.eduLevel;
+
+      let bachelorsBmRate = 0;
+      let docBwRate = 0;
+
+      levels.forEach(levelKey => {
+        const testSim = runSimulation({
+          ...state,
+          eduLevel: levelKey
+        });
+
+        const bmRate = testSim.summary.yieldBm;
+        const bwRate = testSim.summary.yieldBw;
+        const delta = bmRate - bwRate;
+        const ratio = testSim.summary.offerRatio;
+
+        if (levelKey === 'bachelors') bachelorsBmRate = bmRate;
+        if (levelKey === 'doctorate') docBwRate = bwRate;
+
+        const isCurrent = levelKey === currentLevel;
+        const row = document.createElement('tr');
+        row.className = `${isCurrent ? 'bg-indigo-950/40 text-white font-bold' : 'hover:bg-slate-800/40 text-slate-300'}`;
+
+        row.innerHTML = `
+          <td class="py-2.5 px-3 flex items-center gap-2">
+            ${isCurrent ? '<span class="w-2 h-2 rounded-full bg-indigo-400"></span>' : '<span class="w-2 h-2"></span>'}
+            <span>${eduFactors[levelKey].label}</span>
+          </td>
+          <td class="py-2.5 px-3 text-indigo-300 font-semibold">${bmRate.toFixed(2)}%</td>
+          <td class="py-2.5 px-3 text-rose-300 font-semibold">${bwRate.toFixed(2)}%</td>
+          <td class="py-2.5 px-3 text-slate-400">-${delta.toFixed(2)}% pts</td>
+          <td class="py-2.5 px-3 font-bold ${ratio > 5 ? 'text-rose-400' : 'text-amber-400'}">${ratio.toFixed(1)}x gap</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      // Update dynamic narrative callout
+      const callout = document.getElementById('paradox-callout');
+      callout.innerHTML = `
+        <strong>Empirical Takeaway:</strong> A Black woman holding a <em>Doctoral or Terminal degree</em> achieves an offer rate of 
+        <span class="font-bold underline text-amber-300 font-mono">${docBwRate.toFixed(2)}%</span>, which remains far below that of a benchmark candidate holding merely a 
+        <em>Bachelor's degree</em> (<span class="font-bold underline text-indigo-300 font-mono">${bachelorsBmRate.toFixed(2)}%</span>). 
+        This empirical reality invalidates the narrative that personal upskilling can counteract closed referral pipelines and gatekeeper screening.
+      `;
+    }
+
+    function updateRetentionChart(simData) {
+      const ctx = document.getElementById('retentionChart').getContext('2d');
+      const labels = simData.stages.map(s => s.name.split('. ')[1]);
+      const benchmarkData = simData.stages.map(s => s.retentionBm);
+      const targetData = simData.stages.map(s => s.retentionBw);
+
+      if (retentionChartInstance) {
+        retentionChartInstance.data.labels = labels;
+        retentionChartInstance.data.datasets[0].data = benchmarkData;
+        retentionChartInstance.data.datasets[1].data = targetData;
+        retentionChartInstance.update();
+        return;
+      }
+
+      retentionChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Benchmark Cohort (%)',
+              data: benchmarkData,
+              borderColor: '#6366f1',
+              backgroundColor: 'rgba(99, 102, 241, 0.12)',
+              borderWidth: 3,
+              pointBackgroundColor: '#6366f1',
+              pointRadius: 4,
+              tension: 0.35,
+              fill: true
+            },
+            {
+              label: 'Black Female Cohort (%)',
+              data: targetData,
+              borderColor: '#f43f5e',
+              backgroundColor: 'rgba(244, 63, 94, 0.12)',
+              borderWidth: 3,
+              pointBackgroundColor: '#f43f5e',
+              pointRadius: 4,
+              tension: 0.35,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#cbd5e1',
+                font: { family: 'Inter', size: 11, weight: '500' }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}% cohort remaining`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(51, 65, 85, 0.3)' },
+              ticks: { color: '#94a3b8', font: { family: 'Inter', size: 10 } }
+            },
+            y: {
+              type: 'linear',
+              grid: { color: 'rgba(51, 65, 85, 0.3)' },
+              ticks: {
+                color: '#94a3b8',
+                font: { family: 'Inter', size: 10 },
+                callback: function(val) { return val + '%'; }
+              },
+              min: 0,
+              max: 100
+            }
+          }
+        }
+      });
+    }
+
+    function runLiveAuditExperiment() {
+      const log = document.getElementById('audit-log');
+      const bmCountEl = document.getElementById('audit-bm-callbacks');
+      const bwCountEl = document.getElementById('audit-bw-callbacks');
+      const bmRateEl = document.getElementById('audit-bm-rate');
+      const bwRateEl = document.getElementById('audit-bw-rate');
+
+      // Base callback probabilities for cold resumes
+      const pColdBm = 0.18 * eduFactors[state.eduLevel].baseCallbackBoost;
+      const pColdBw = pColdBm * (1 - state.biasPenalty);
+
+      let bmHits = 0;
+      let bwHits = 0;
+      const sampleSize = 50;
+
+      for (let i = 0; i < sampleSize; i++) {
+        if (Math.random() < pColdBm) bmHits++;
+        if (Math.random() < pColdBw) bwHits++;
+      }
+
+      bmCountEl.textContent = bmHits;
+      bwCountEl.textContent = bwHits;
+      bmRateEl.textContent = `${((bmHits / sampleSize) * 100).toFixed(1)}%`;
+      bwRateEl.textContent = `${((bwHits / sampleSize) * 100).toFixed(1)}%`;
+
+      const timestamp = new Date().toLocaleTimeString();
+      const diffRatio = bwHits > 0 ? (bmHits / bwHits).toFixed(1) : `${bmHits} vs 0`;
+      log.innerHTML = `[${timestamp}] Audit run complete: 50 paired resumes submitted.<br>&bull; Benchmark: ${bmHits}/${sampleSize} (${((bmHits / sampleSize) * 100).toFixed(0)}%)<br>&bull; Black Female: ${bwHits}/${sampleSize} (${((bwHits / sampleSize) * 100).toFixed(0)}%)<br>&bull; Observed Call-back Disparity: ${diffRatio}x<br>` + log.innerHTML;
+    }
+
+    function setupEventListeners() {
+      // Lever 1: Bias Penalty
+      const biasSlider = document.getElementById('lever-bias');
+      biasSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        state.biasPenalty = val / 100;
+        document.getElementById('val-bias').textContent = `${val}%`;
+        refresh();
+      });
+
+      // Lever 2: Education Level buttons
+      const eduButtons = document.querySelectorAll('.edu-btn');
+      eduButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          eduButtons.forEach(b => {
+            b.classList.remove('border-indigo-500', 'bg-indigo-900/40', 'text-indigo-200', 'font-bold');
+            b.classList.add('border-slate-700', 'bg-slate-800/80', 'text-slate-300');
+          });
+          btn.classList.remove('border-slate-700', 'bg-slate-800/80', 'text-slate-300');
+          btn.classList.add('border-indigo-500', 'bg-indigo-900/40', 'text-indigo-200', 'font-bold');
+
+          state.eduLevel = btn.dataset.edu;
+          refresh();
+        });
+      });
+
+      // Lever 3: Referral Access Parity
+      const refSlider = document.getElementById('lever-ref-gap');
+      refSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        state.referralParity = val / 100;
+        document.getElementById('val-ref-gap').textContent = `${val}% Parity`;
+        refresh();
+      });
+
+      // Lever 4: Interview Loop Friction
+      const intSlider = document.getElementById('lever-interview-friction');
+      intSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        state.interviewFriction = val / 100;
+        document.getElementById('val-interview-friction').textContent = `${val}%`;
+        refresh();
+      });
+
+      // Cohort Size Input
+      const cohortInput = document.getElementById('input-cohort-size');
+      cohortInput.addEventListener('change', (e) => {
+        let val = parseInt(e.target.value, 10);
+        if (isNaN(val) || val < 100) val = 100;
+        if (val > 10000) val = 10000;
+        state.cohortSize = val;
+        cohortInput.value = val;
+        refresh();
+      });
+
+      // Presets
+      const presetBtns = document.querySelectorAll('.preset-btn');
+      presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          presetBtns.forEach(b => b.classList.remove('border-indigo-600/60', 'bg-indigo-950/40', 'text-indigo-200'));
+          btn.classList.add('border-indigo-600/60', 'bg-indigo-950/40', 'text-indigo-200');
+          applyPreset(btn.dataset.preset);
+        });
+      });
+
+      // Reset Button
+      document.getElementById('btn-reset-defaults').addEventListener('click', () => {
+        applyPreset('statusquo');
+      });
+
+      // View Switcher Buttons
+      const vFunnel = document.getElementById('view-mode-funnel');
+      const vChannels = document.getElementById('view-mode-channels');
+      const vAudit = document.getElementById('view-mode-audit');
+
+      const funnelBox = document.getElementById('funnel-container');
+      const channelsBox = document.getElementById('channel-container');
+      const auditBox = document.getElementById('audit-container');
+
+      function setView(view) {
+        state.activeView = view;
+        vFunnel.className = view === 'funnel' ? "px-3 py-1 rounded-lg bg-indigo-600 text-white font-semibold transition" : "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition";
+        vChannels.className = view === 'channels' ? "px-3 py-1 rounded-lg bg-indigo-600 text-white font-semibold transition" : "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition";
+        vAudit.className = view === 'audit' ? "px-3 py-1 rounded-lg bg-indigo-600 text-white font-semibold transition" : "px-3 py-1 rounded-lg text-slate-400 hover:text-white transition";
+
+        funnelBox.classList.toggle('hidden', view !== 'funnel');
+        channelsBox.classList.toggle('hidden', view !== 'channels');
+        auditBox.classList.toggle('hidden', view !== 'audit');
+      }
+
+      vFunnel.addEventListener('click', () => setView('funnel'));
+      vChannels.addEventListener('click', () => setView('channels'));
+      vAudit.addEventListener('click', () => setView('audit'));
+
+      // Audit Sandbox Run
+      document.getElementById('btn-run-audit-sim').addEventListener('click', runLiveAuditExperiment);
+
+      // Export CSV Data
+      document.getElementById('btn-export-csv').addEventListener('click', exportSimulationCSV);
+
+      // Modal Handlers
+      const modal = document.getElementById('modal-methodology');
+      document.getElementById('btn-show-methodology').addEventListener('click', () => modal.classList.remove('hidden'));
+      document.getElementById('btn-close-methodology').addEventListener('click', () => modal.classList.add('hidden'));
+      document.getElementById('btn-modal-dismiss').addEventListener('click', () => modal.classList.add('hidden'));
+    }
+
+    function applyPreset(presetKey) {
+      if (presetKey === 'statusquo') {
+        state.biasPenalty = 0.35;
+        state.referralParity = 0.28;
+        state.eduLevel = 'masters';
+        state.interviewFriction = 0.25;
+      } else if (presetKey === 'bootstrap') {
+        state.biasPenalty = 0.35;
+        state.referralParity = 0.28;
+        state.eduLevel = 'doctorate';
+        state.interviewFriction = 0.25;
+      } else if (presetKey === 'blind') {
+        state.biasPenalty = 0.00;
+        state.referralParity = 0.28;
+        state.eduLevel = 'masters';
+        state.interviewFriction = 0.25;
+      } else if (presetKey === 'equity') {
+        state.biasPenalty = 0.00;
+        state.referralParity = 1.00;
+        state.eduLevel = 'masters';
+        state.interviewFriction = 0.00;
+      }
+
+      // Sync slider UI controls
+      document.getElementById('lever-bias').value = Math.round(state.biasPenalty * 100);
+      document.getElementById('val-bias').textContent = `${Math.round(state.biasPenalty * 100)}%`;
+
+      document.getElementById('lever-ref-gap').value = Math.round(state.referralParity * 100);
+      document.getElementById('val-ref-gap').textContent = `${Math.round(state.referralParity * 100)}% Parity`;
+
+      document.getElementById('lever-interview-friction').value = Math.round(state.interviewFriction * 100);
+      document.getElementById('val-interview-friction').textContent = `${Math.round(state.interviewFriction * 100)}%`;
+
+      const eduButtons = document.querySelectorAll('.edu-btn');
+      eduButtons.forEach(b => {
+        if (b.dataset.edu === state.eduLevel) {
+          b.classList.remove('border-slate-700', 'bg-slate-800/80', 'text-slate-300');
+          b.classList.add('border-indigo-500', 'bg-indigo-900/40', 'text-indigo-200', 'font-bold');
+        } else {
+          b.classList.remove('border-indigo-500', 'bg-indigo-900/40', 'text-indigo-200', 'font-bold');
+          b.classList.add('border-slate-700', 'bg-slate-800/80', 'text-slate-300');
+        }
+      });
+
+      refresh();
+    }
+
+    function exportSimulationCSV() {
+      const sim = runSimulation(state);
+      let csv = "Stage,Benchmark Candidates,Benchmark Retention (%),Black Female Candidates,Black Female Retention (%),Deficit\n";
+      
+      sim.stages.forEach(st => {
+        csv += `"${st.name}",${st.benchmark},${st.retentionBm.toFixed(2)}%,${st.target},${st.retentionBw.toFixed(2)}%,${st.benchmark - st.target}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `recruitment_disparity_simulation_${state.eduLevel}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function refresh() {
+      const results = runSimulation(state);
+      renderUI(results);
+    }
+
+    // Initialize application on window load
+    window.addEventListener('DOMContentLoaded', () => {
+      setupEventListeners();
+      refresh();
+    });
+  </script>
+</body>
+</html>
